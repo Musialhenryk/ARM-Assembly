@@ -1,0 +1,63 @@
+		;		Author: Henryk Musial
+		;		03/05/2024
+		
+		;		This searchBinarySearchTree.s file implements the binary search algorithm on the binary seach tree
+		;		defined by the nodes below. R0 contains the target value we are searching for, and R1 will contain the
+		;		address of the target value after the search if performed. If the value is not found, R1 will contain 0x0.
+		
+		;		Memory layout of a binary tree node:
+		;		- Left: Points to the left child (Address offset: 0 Bytes)
+		;		- Right: Points to the right child (Address offset: 4 Bytes)
+		;		- Value: data value stored in the node (Address offset: 8 Bytes)
+		;
+		;		struct node {
+		;		struct node *left; 	   	// R1 (Address of left child)
+		;		struct node *right; 	// R1 + 4 (Address of right child)
+		;		int value; 			   	// R1 + 8  (Address of value)
+		;		}
+		
+		;		Left,		Right,		Value
+node1	DCD		0x10C, 	0x130, 			4 ; Value at 0x100 + 0x8 = 0x108 (Root Node)
+node2	DCD		0x118, 	0x124, 			2 ; Value at 0x10C + 0x8 = 0x114
+node3	DCD		0x0, 			0x0, 			1 ; Value at 0x118 + 0x8 = 0x120 (Leaf Node)
+node4	DCD		0x0, 			0x0, 			3 ; Value at 0x124 + 0x8 = 0x12C (Leaf Node)
+node5	DCD		0x13C, 	0x148, 			6 ; Value at 0x130 + 0x8 = 0x138
+node6	DCD		0x0, 			0x0, 			5 ; Value at 0x13C + 0x8 = 0x144 (Leaf Node)
+node7	DCD		0x0, 			0x0, 			7 ; Value at 0x148 + 0x8 = 0x150 (Leaf Node)
+		
+		LDR		R0,	=7				; Load the target value to search for into R0
+		LDR		R1,	=0x100			; Load the address of the root node into R1
+loop		; Traverse the BST to find the node containing the target value
+		LDR		R2,	[R1,	#0x8]	; Load the value of the current node into R2
+		
+		;		Compare the value stored at the current node with the target value
+		;		This comparison tells us if we are greater than, less than, or have found out target
+		CMP		R2,	R0					; R2 = Current value, R0 = Value we are searching for
+		
+		BEQ		found					; Branch to found if R2 = R0 - Found the target
+		BGT		left						; Branch to left subtree if R2 > R0 - Value is greater than target
+		BLT		right						; Branch to right subtree if R2 < R0 - Value is less than target
+		
+right		; Check the right subtree
+		LDR		R1,	[R1,	#0x4] ; Load the address of the right child node [R1 + 4 bytes]
+		
+		;		Compare the address of the right child with #0 (NULL)
+		;		This comparison tells us if the current node has a valid right child
+		CMP		R1,	#0x0				; Check if node has a right child
+		BEQ		exit						; Branch to exit - Value not found
+		B		loop							; Branch back to loop - Check node value
+		
+left		; Check the left subtree
+		LDR		R1, 	[R1] ; Load the address of the right child node [R1 + 0 bytes]
+		
+		;		Compare the address of the left child with #0 (NULL)
+		;		This comparison tells us if the current node has a valid left child
+		CMP		R1,	#0x0 			; Check if the node has a left child
+		BEQ		exit						; Branch to exit - Value not found
+		B		loop 							; Branch back to loop - Check node value
+		
+found	; Target value found
+		ADD		R1,	R1,	#0x8 	; Convert the target value into address form
+		
+exit		; End
+		END		; End the program - R1 stores address of target value
